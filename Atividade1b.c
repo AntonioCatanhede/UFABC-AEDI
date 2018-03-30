@@ -3,60 +3,56 @@
 
 typedef struct LinkedNode LinkedNode;
 struct LinkedNode {
-  unsigned int ra;
-  unsigned int duvida;
+  int RA;
+  int CodTopico;
   LinkedNode *next;
 };
 
-LinkedNode* appendNode(LinkedNode *last, int ra, int duvida) {
-
-  if (last != NULL)
-    if (last->next != NULL) return NULL;
-
-  LinkedNode *tmp = malloc(sizeof(LinkedNode));
-  if (tmp == NULL) {
-    return NULL;
-  }
-
-  tmp->ra = ra;
-  tmp->duvida=duvida;
-  tmp->next = NULL;
-
-  if (last != NULL)
-    last->next = tmp;
-
-  return tmp;
-}
-
-LinkedNode* InsertAfter(LinkedNode* list, int ra, int duvida) {
+LinkedNode *InsertAfter(LinkedNode* list, int RA, int CodTopico) {
   
   LinkedNode *tmp = malloc(sizeof(LinkedNode));
-
-  tmp->ra = ra;
-  tmp->duvida = duvida;
+  if(tmp == NULL) return NULL;
+  
+  tmp->RA = RA;
+  tmp->CodTopico = CodTopico;
   tmp->next = list->next;
   list->next=tmp;
-  
   return tmp;
 }
 
-LinkedNode *BuscaRA(LinkedNode* first, int ra){
-  LinkedNode *curr, *last;
+LinkedNode *BuscaRA(LinkedNode* first, int RA){
+  LinkedNode *curr, *prev;
   curr=first;
-
+/*
   while(curr!=NULL){
-    if (curr->next==NULL) return curr;
-    if(curr->ra==ra){
-      while(curr->ra==ra && curr->next!=NULL){
-        last = curr;
+    if(curr->next==NULL) return curr;
+    if(curr->RA==RA){
+      do{
+        prev = curr;
         curr=curr->next;
-      }
-      return last;
+      }while(curr->RA==RA && curr!=NULL);
+      return prev;
     }else{
+      prev = curr;
       curr=curr->next;
     }
   }
-  return curr;
+  return prev;*/
+  while(curr != NULL && curr->RA != RA){
+    prev = curr;
+    curr = curr->next;
+  }
+  
+  if(curr == NULL){ //adiciono ao final
+    return prev;
+  }else{
+    while(curr != NULL && curr->RA == RA){
+      prev = curr;
+      curr = curr->next;
+    }
+    return prev;
+  }
+  
 }
 
 LinkedNode *lerSeq () {
@@ -65,20 +61,22 @@ LinkedNode *lerSeq () {
   LinkedNode* last = NULL;
   
   
-  int ra=0, duvida=0;
+  int RA=0, CodTopico=0;
   
   do{
-    scanf("%d %d", &ra, &duvida);
-    if(ra>0 && duvida>0){
+    scanf("%d %d", &RA, &CodTopico);
+    if(RA!=-1 || CodTopico!=-1){
       if (first==NULL){
-        first=appendNode(first, ra, duvida);
-        last=first;
+        first=malloc(sizeof(LinkedNode));
+        first->RA=RA;
+        first->CodTopico=CodTopico;
+        first->next=NULL;
       }else{
-        last=BuscaRA(first, ra);
-        InsertAfter(last, ra, duvida);
+        last=BuscaRA(first, RA);
+        InsertAfter(last, RA, CodTopico);
       }
     }
-  }while(ra!=-1 || duvida!=-1);
+  }while(RA!=-1 || CodTopico!=-1);
   
   return first;
 }
@@ -86,11 +84,10 @@ LinkedNode *lerSeq () {
 void printSeq(LinkedNode *seq){ // Imprimindo bonitinho
   LinkedNode *curr = seq;
   while (curr != NULL) {
-    printf("%d %d\n", curr->ra, curr->duvida);
+    printf("%d %d\n", curr->RA, curr->CodTopico);
     curr = curr->next;
   }
 }
-
 
 void liberaLista(LinkedNode* list){
   LinkedNode *tmp, *curr;
@@ -102,7 +99,6 @@ void liberaLista(LinkedNode* list){
     curr = tmp;
   }
 }
-
 
 int main (void) {
   
