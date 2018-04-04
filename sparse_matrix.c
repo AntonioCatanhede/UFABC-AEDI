@@ -5,8 +5,8 @@ typedef unsigned long long int ulli;
 
 typedef struct node{
     double value; //8
-    ulli col, row; //8
-    struct node *nextr, *nextc; //16
+    ulli i, j; //8
+    struct node *r_node, *b_node; //16
 }Node;
 
 typedef struct head{
@@ -15,43 +15,64 @@ typedef struct head{
     Node *node; //8
 }Head;
 
-typedef struct first{
+typedef struct sparse_m{
     ulli numc, numr; //16
     Head *row, *col; //16
-}First;
+}Sparse_Matrix;
 
-Head* InsertHead(Head **topo, ulli val)
+Head* InsertHead(Head *first, ulli pos)
 {
     Head *curr, *tmp;
-    curr = *topo;
+    curr = first;
+    tmp = malloc(sizeof(Head));
     
-    if(curr->pos > val){
-        tmp = malloc(sizeof(Head));
-        tmp->pos = val;
-        tmp->next = *topo;
-        **topo = *tmp;
+    if(curr->pos > pos){
+        tmp->pos = curr->pos;
+        tmp->next = curr->next;
+        tmp->node = curr->node;
+        
+        first->next = tmp;
+        first->pos = pos;
+        first->node = NULL;
+        return first;
+    }
+    
+    while(curr->next !=NULL && curr->next->pos <= pos) curr = curr->next;
+    
+    if(curr->pos = pos) return curr;
+    
+    tmp->node  = NULL;
+    tmp->pos   = pos;
+    tmp->next  = NULL;
+    
+    if(curr->next == NULL){
+        curr->next = tmp;
         return tmp;
     }
     
-    while(curr !=NULL || curr->pos < val) curr = curr->next;
-    
+    tmp->next  = curr->next;
+    curr->next = tmp;
+    return tmp;
 
 }
 
-void InsertFirstNode(First *first,  ulli row, ulli col, double val)
+void InsertFirstNode(Sparse_Matrix *first,  ulli row, ulli col, double val)
 {
-    Node *tmp =  malloc(sizeof(Node))
-    tmp->col= col;
-    tmp->row = row;
-    tmp->value = val;
+    Node *tmp =  malloc(sizeof(Node));
+    tmp->i      = row;
+    tmp->j      = col;
+    tmp->value  = val;
+    tmp->b_node = NULL;
+    tmp->r_node = NULL;
     
     Head *c, *r;
-    c = first->col;
-    r = first->row;
     
     first->col = malloc(sizeof(Node));
     first->row = malloc(sizeof(Node));
-        
+    
+    c = first->col;
+    r = first->row;
+    
     c->pos = col;
     c->node = tmp;
     c->next = NULL;
@@ -62,64 +83,95 @@ void InsertFirstNode(First *first,  ulli row, ulli col, double val)
 
 }
 
+Node *SearchNode(Node *node, ulli pos, int horizontal){
+    Node *curr;
+    curr = node;
+    
+    if(horizontal){
+        while(curr->r_node != NULL && curr->r_node->j <= pos) curr = curr->r_node;
+    }else{
+        while(curr->b_node != NULL && curr->b_node->i <= pos) curr = curr->b_node;
+    }
+    
+    return curr;
+}
 
-void InsertNode(First *first, ulli row, ulli col, double val)
+void InsertNode(Sparse_Matrix *first, ulli row, ulli col, double val)
 {
+    if(first == NULL) 
+    {
+        InsertFirstNode(first, row, col, val);
+        return;
+    }
+    
     Node *tmp = malloc(sizeof(Node));
 
-    tmp->col=col;
-    tmp->row=row;
+    tmp->i=row;
+    tmp->j=col;
     tmp->value=val;
-    tmp->nextc = NULL;
-    tmp->nextr = NULL;
+    tmp->b_node = NULL;
+    tmp->r_node = NULL;
     
     Head *c, *r;
-    c = first->col;
-    r = first->row;
+    c = InsertHead(first->col, col);
+    r = InsertHead(first->row, row);
     
+    Node *curr;
     
-    while(c->next!=NULL && c->next->pos<=col) c = c->next;
-    while(r->next!=NULL && r->next->pos<=row) r = r->next;
-    
-    Head *h_tmp;
-    
-    if(c->next == NULL){
-        h_tmp = malloc(sizeof(Head));
-        h_tmp->node = tmp;
-        h_tmp->pos = col;
-        c->next = h_tmp;
-    }else if(c->next->pos <  col){
-        h_tmp = malloc(sizeof(Head));
-        h_tmp->node = tmp;
-        h_tmp->pos = col;
-        h_tmp->next = c->next;
-        c->next = h_tmp;
+    if(c->node == NULL) c->node = tmp;
+    else
+    {
+        curr = SearchNode(c->node, row, 0);
+        if(curr->i > row){
+            tmp->b_node = curr->b_node;
+            curr->b_node = tmp;
+            tmp->r_node = curr->r_node;
+            tmp->value = curr->value;
+            curr->value = val;
+            tmp->i = curr->i;
+            curr->i = row;
+            tmp->j = curr->j;
+            curr->j = col;
+        }else if(curr->b_node == NULL){
+            curr->b_node = tmp;
+        }else{
+            tmp->b_node = curr->b_node;
+            curr->b_node = tmp;
+        }
         
     }
-
-    if(r->next == NULL){
-        h_tmp = malloc(sizeof(Head));
-        h_tmp->node = tmp;
-        h_tmp->pos = row;
-        r->next = h_tmp;
-    }else if(r->next->pos <  row){
-        h_tmp = malloc(sizeof(Head));
-        h_tmp->node = tmp;
-        h_tmp->pos = row;
-        h_tmp->next = r->next;
-        r->next = h_tmp;
+        
+    if(r->node == NULL) r->node = tmp;
+    else
+    {
+        curr = SearchNode(r->node, col, 1);
+        if(curr->j > col){
+            tmp->r_node = curr->r_node;
+            curr->r_node = tmp;
+            tmp->b_node = curr->b_node;
+            tmp->value = curr->value;
+            curr->value = val;
+            tmp->j = curr->j;
+            curr->j = col;
+            tmp->i = curr->i;
+            curr->i = row;
+        }else if(curr->r_node == NULL){
+            curr->r_node = tmp;
+        }else{
+            tmp->r_node = curr->r_node;
+            curr->r_node = tmp;
+        }
     }
-    
-    
+     
 
 }
 
-void PrintMatrix(First *first)
+void PrintMatrix(Sparse_Matrix *first)
 {
     
 }
 
-void ReadMatrix(ulli nums, First *first)
+void ReadMatrix(ulli nums, Sparse_Matrix *first)
 {
     ulli i, r, c;
     double val;
@@ -135,16 +187,16 @@ void ReadMatrix(ulli nums, First *first)
 int main()
 {
 
-    First *firstA = malloc(sizeof(First));
-    First *firstB = malloc(sizeof(First));
+    Sparse_Matrix *A = malloc(sizeof(Sparse_Matrix));
+    Sparse_Matrix *B = malloc(sizeof(Sparse_Matrix));
     ulli NA, NB;
     
     
-    firstA->row = NULL;
-    firstA->col = NULL;
+    A->row = NULL;
+    A->col = NULL;
     
-    firstB->row = NULL;
-    firstB->col = NULL;
+    B->row = NULL;
+    B->col = NULL;
     
     //scanf("%llu %llu %llu %llu %llu %llu", &(firstA->numr), &(firstA->numc), &NA, &(firstB->numr), &(firstB->numc), &NB);
     /*
