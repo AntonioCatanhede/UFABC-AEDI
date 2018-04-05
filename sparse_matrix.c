@@ -39,20 +39,22 @@ Head* InsertHead(Head *first, ulli pos)
     
     while(curr->next !=NULL && curr->next->pos <= pos) curr = curr->next;
     
-    if(curr->pos = pos) return curr;
+    if(curr->pos == pos) return curr;
     
     tmp->node  = NULL;
     tmp->pos   = pos;
     tmp->next  = NULL;
     
-    if(curr->next == NULL){
+    if(curr->pos < pos){
+        tmp->next  = curr->next;
         curr->next = tmp;
         return tmp;
     }
     
-    tmp->next  = curr->next;
-    curr->next = tmp;
-    return tmp;
+    if(curr->next == NULL){
+        curr->next = tmp;
+        return tmp;
+    }
 
 }
 
@@ -67,8 +69,8 @@ void InsertFirstNode(Sparse_Matrix *first,  ulli row, ulli col, double val)
     
     Head *c, *r;
     
-    first->col = malloc(sizeof(Node));
-    first->row = malloc(sizeof(Node));
+    first->col = malloc(sizeof(Head));
+    first->row = malloc(sizeof(Head));
     
     c = first->col;
     r = first->row;
@@ -88,7 +90,7 @@ Node *SearchNode(Node *node, ulli pos, int horizontal){
     curr = node;
     
     if(horizontal){
-        while(curr->r_node != NULL && curr->r_node->j <= pos) curr = curr->r_node;
+        while(curr->r_node != NULL && curr->r_node->j < pos) curr = curr->r_node;
     }else{
         while(curr->b_node != NULL && curr->b_node->i <= pos) curr = curr->b_node;
     }
@@ -98,12 +100,6 @@ Node *SearchNode(Node *node, ulli pos, int horizontal){
 
 void InsertNode(Sparse_Matrix *first, ulli row, ulli col, double val)
 {
-    if(first == NULL) 
-    {
-        InsertFirstNode(first, row, col, val);
-        return;
-    }
-    
     Node *tmp = malloc(sizeof(Node));
 
     tmp->i=row;
@@ -119,46 +115,57 @@ void InsertNode(Sparse_Matrix *first, ulli row, ulli col, double val)
     Node *curr;
     
     if(c->node == NULL) c->node = tmp;
+    else if(c->node->i > row){
+       tmp->b_node = c->node;
+       c->node = tmp;
+    }
     else
     {
-        curr = SearchNode(c->node, row, 0);
+        curr = SearchNode(c->node, row, 0); //busca ao longo da coluna
         if(curr->i > row){
             tmp->b_node = curr->b_node;
-            curr->b_node = tmp;
+            tmp->i      = curr->i;
+            tmp->j      = curr->j;
             tmp->r_node = curr->r_node;
-            tmp->value = curr->value;
+            tmp->value  = curr->value;
+            
+            curr->b_node= tmp;
+            curr->i     = row;
+            curr->j     = col;
+            curr->r_node= NULL;
             curr->value = val;
-            tmp->i = curr->i;
-            curr->i = row;
-            tmp->j = curr->j;
-            curr->j = col;
         }else if(curr->b_node == NULL){
             curr->b_node = tmp;
         }else{
             tmp->b_node = curr->b_node;
             curr->b_node = tmp;
-        }
-        
+        } 
     }
         
     if(r->node == NULL) r->node = tmp;
+    else if(r->node->j > col){
+       tmp->r_node = r->node;
+       r->node = tmp;
+    }
     else
     {
-        curr = SearchNode(r->node, col, 1);
+        curr = SearchNode(r->node, col, 1); //busca ao longo da coluna
         if(curr->j > col){
-            tmp->r_node = curr->r_node;
-            curr->r_node = tmp;
             tmp->b_node = curr->b_node;
-            tmp->value = curr->value;
-            curr->value = val;
-            tmp->j = curr->j;
-            curr->j = col;
-            tmp->i = curr->i;
-            curr->i = row;
-        }else if(curr->r_node == NULL){
-            curr->r_node = tmp;
-        }else{
+            tmp->i      = curr->i;
+            tmp->j      = curr->j;
             tmp->r_node = curr->r_node;
+            tmp->value  = curr->value;
+            
+            curr->b_node= NULL;
+            curr->i     = row;
+            curr->j     = col;
+            curr->r_node= tmp;
+            curr->value = val;
+        }else if(curr->j == col){
+            tmp->r_node = curr->r_node;
+            curr->r_node = tmp;
+        }else if(curr->r_node == NULL){
             curr->r_node = tmp;
         }
     }
@@ -168,29 +175,52 @@ void InsertNode(Sparse_Matrix *first, ulli row, ulli col, double val)
 
 void PrintMatrix(Sparse_Matrix *first)
 {
+    ulli i, j, c, r;
+    c = first->numc;
+    r = first->numr;
+    Head *row = first->row;
+    Node *node;
     
+    for(i=0; i<r; i++){
+        if(row != NULL) node = row->node;
+        printf("[");
+        for(j=0; j<c; j++){
+            if(node->i == i && node->j == j)
+            {
+                printf("%0.lf ", node->value);
+                if(node->r_node != NULL) node = node->r_node;
+            }
+            else printf("0 ");
+        }
+        if(row != NULL && row->pos == i) row = row->next;
+        printf("]\n");
+    }
+    
+    printf("\n");
 }
 
 void ReadMatrix(ulli nums, Sparse_Matrix *first)
 {
     ulli i, r, c;
     double val;
+    Sparse_Matrix *tmp = first;
     
     for(i=0; i<nums; i++)
-    {
+    {   
         scanf("%llu %llu %lf", &r, &c, &val);
-        if(i==0) InsertFirstNode(first, r, c, val);
-        else InsertNode(first, r, c, val);
+        if(i==0) InsertFirstNode(tmp, r, c, val); 
+        else InsertNode(tmp, r, c, val);
     }
 }
 
 int main()
 {
 
-    Sparse_Matrix *A = malloc(sizeof(Sparse_Matrix));
-    Sparse_Matrix *B = malloc(sizeof(Sparse_Matrix));
+    Sparse_Matrix *A, *B;
+    B = malloc(sizeof(Sparse_Matrix));
+    A = malloc(sizeof(Sparse_Matrix));
     ulli NA, NB;
-    
+    char op;
     
     A->row = NULL;
     A->col = NULL;
@@ -198,15 +228,20 @@ int main()
     B->row = NULL;
     B->col = NULL;
     
-    //scanf("%llu %llu %llu %llu %llu %llu", &(firstA->numr), &(firstA->numc), &NA, &(firstB->numr), &(firstB->numc), &NB);
-    /*
-    firstA->numr = LA;
-    firstA->numc = CA;
-    firstB->numr = LB;
-    firstB->numc = CB;
-    */
-    //printf("%llu %llu %llu %llu %llu %llu\n", firstA->numr, firstA->numc, NA, firstB->numr, firstB->numc, NB);
+    scanf("%llu %llu %llu %llu %llu %llu", &A->numr, &A->numc, &NA, &B->numr, &B->numc, &NB);
+    //printf("%llu %llu %llu %llu %llu %llu\n", A->numr, A->numc, NA, B->numr, B->numc, NB);
+    ReadMatrix(NA, A);
+    ReadMatrix(NB, B);
     
-
+    scanf("\n%c", &op);
+    
+    while(op!='S'){
+        if(op == 'A') PrintMatrix(A);
+        else if(op == 'B') PrintMatrix(B);
+        else if(op == 'M') printf("Imprime M\n");
+        scanf("\n%c", &op);
+    }
+    
+    return 0;
 
 }
