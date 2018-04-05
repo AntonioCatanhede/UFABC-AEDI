@@ -175,11 +175,17 @@ void InsertNode(Sparse_Matrix *first, ulli row, ulli col, double val)
 
 void PrintMatrix(Sparse_Matrix *first)
 {
+    if(first == NULL){
+        printf("ERRO\n");
+        return;
+    }
+    
     ulli i, j, c, r;
     c = first->numc;
     r = first->numr;
     Head *row = first->row;
     Node *node;
+    
     
     for(i=0; i<r; i++){
         if(row != NULL) node = row->node;
@@ -213,12 +219,58 @@ void ReadMatrix(ulli nums, Sparse_Matrix *first)
     }
 }
 
+Sparse_Matrix * MultMatrix(Sparse_Matrix *A, Sparse_Matrix *B){
+    
+    if(A->numc != B->numr) return NULL;
+    
+    Sparse_Matrix *M = malloc(sizeof(Sparse_Matrix));
+    
+    ulli i, j, k, r, c, a;
+    r = A->numr;
+    c = B->numc;
+    a = A->numc;
+    double sum;
+    
+    M->numc = c;
+    M->numr = r;
+    M->col = NULL;
+    M->row = NULL;
+    
+    Head *row = A->row;
+    Head *col = B->col;
+    Node *nodeA, *nodeB;
+    
+    for (i = 0; i < r; i++) {
+        //if(row != NULL) nodeA = row->node;
+        if(row->pos == i){
+            if(row != NULL) nodeA = row->node;
+            for (j = 0; j < c; j++) {
+                if(col->pos == j){
+                    if(col != NULL) nodeB = col->node;
+                    for (k = 0; k < a; k++) {
+                        sum += 0;
+                    }
+                    if(M->col == NULL && M->row == NULL && sum != 0) InsertFirstNode(M, i, j, sum);
+                    if(sum != 0) InsertNode(M, i, j, sum);
+                    sum = 0;
+                    
+                    if(col->next != NULL) col = col->next;
+                }
+            }
+            if(row->next != NULL) row = row->next;
+        }
+    }
+    
+    return M;
+}
+
 int main()
 {
 
-    Sparse_Matrix *A, *B;
+    Sparse_Matrix *A, *B, *M;
     B = malloc(sizeof(Sparse_Matrix));
     A = malloc(sizeof(Sparse_Matrix));
+
     ulli NA, NB;
     char op;
     
@@ -232,13 +284,13 @@ int main()
     //printf("%llu %llu %llu %llu %llu %llu\n", A->numr, A->numc, NA, B->numr, B->numc, NB);
     ReadMatrix(NA, A);
     ReadMatrix(NB, B);
-    
+    M = MultMatrix(A,B);
     scanf("\n%c", &op);
     
     while(op!='S'){
         if(op == 'A') PrintMatrix(A);
         else if(op == 'B') PrintMatrix(B);
-        else if(op == 'M') printf("Imprime M\n");
+        else if(op == 'M') PrintMatrix(M);
         scanf("\n%c", &op);
     }
     
