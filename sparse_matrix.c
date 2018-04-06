@@ -92,7 +92,7 @@ Node *SearchNode(Node *node, ulli pos, int horizontal){
     if(horizontal){
         while(curr->r_node != NULL && curr->r_node->j < pos) curr = curr->r_node;
     }else{
-        while(curr->b_node != NULL && curr->b_node->i <= pos) curr = curr->b_node;
+        while(curr->b_node != NULL && curr->b_node->i < pos) curr = curr->b_node;
     }
     
     return curr;
@@ -176,7 +176,7 @@ void InsertNode(Sparse_Matrix *first, ulli row, ulli col, double val)
 void PrintMatrix(Sparse_Matrix *first)
 {
     if(first == NULL){
-        printf("ERRO\n");
+        printf("ERRO\n\n");
         return;
     }
     
@@ -219,16 +219,38 @@ void ReadMatrix(ulli nums, Sparse_Matrix *first)
     }
 }
 
+double DotProd(Head *A, Head *B, ulli k){
+    double sum = 0;
+    ulli i;
+    
+    Node *nodeA, *nodeB;
+    nodeA = A->node;
+    nodeB = B->node;
+    
+    for(i = 0; i < k; i++){
+        
+        if(nodeA->j == nodeB->i && nodeB->i == i)
+            sum += nodeA->value * nodeB->value;
+        
+        if(nodeA->r_node && nodeA->j <= i) nodeA = nodeA->r_node;
+        if(nodeB->b_node && nodeB->i <= i) nodeB = nodeB->b_node;
+    }
+    
+    return sum;
+}
+
 Sparse_Matrix * MultMatrix(Sparse_Matrix *A, Sparse_Matrix *B){
     
-    if(A->numc != B->numr) return NULL;
+    if(A->numc != B->numr) {
+        return NULL;
+    }
     
     Sparse_Matrix *M = malloc(sizeof(Sparse_Matrix));
     
-    ulli i, j, k, r, c, a;
+    ulli i, j, r, c, k;
     r = A->numr;
     c = B->numc;
-    a = A->numc;
+    k = A->numc;
     double sum;
     
     M->numc = c;
@@ -238,30 +260,55 @@ Sparse_Matrix * MultMatrix(Sparse_Matrix *A, Sparse_Matrix *B){
     
     Head *row = A->row;
     Head *col = B->col;
-    Node *nodeA, *nodeB;
     
     for (i = 0; i < r; i++) {
-        //if(row != NULL) nodeA = row->node;
         if(row->pos == i){
-            if(row != NULL) nodeA = row->node;
             for (j = 0; j < c; j++) {
                 if(col->pos == j){
-                    if(col != NULL) nodeB = col->node;
-                    for (k = 0; k < a; k++) {
-                        sum += 0;
-                    }
+                    sum = DotProd(row, col, k);
                     if(M->col == NULL && M->row == NULL && sum != 0) InsertFirstNode(M, i, j, sum);
-                    if(sum != 0) InsertNode(M, i, j, sum);
+                    else if(sum != 0) InsertNode(M, i, j, sum);
                     sum = 0;
                     
                     if(col->next != NULL) col = col->next;
                 }
             }
+            col = B->col;
             if(row->next != NULL) row = row->next;
         }
     }
     
     return M;
+}
+
+void freeMatrix(Sparse_Matrix *A){
+    if(!A) return;
+    Head *c, *r, *tmpr, *tmpc;
+    Node *tmp, *curr;
+    c = A->col;
+    r = A->row;
+    tmp = r->node;
+    curr = r->node;
+    free(A);
+    
+    while(r){
+        while(curr){
+            tmp = curr->r_node;
+            free(curr);
+            curr = tmp;
+        }
+        tmpr = r->next;
+        free(r);
+        r = tmpr;
+        if(r) curr = r->node;
+    }
+    
+    while(c){
+        tmpc = c->next;
+        free(c);
+        c = tmpc;
+    }
+    
 }
 
 int main()
@@ -293,6 +340,10 @@ int main()
         else if(op == 'M') PrintMatrix(M);
         scanf("\n%c", &op);
     }
+    
+    freeMatrix(A);
+    freeMatrix(B);
+    //freeMatrix(M);
     
     return 0;
 
