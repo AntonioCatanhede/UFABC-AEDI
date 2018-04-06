@@ -283,13 +283,13 @@ Sparse_Matrix * MultMatrix(Sparse_Matrix *A, Sparse_Matrix *B){
 
 void freeMatrix(Sparse_Matrix *A){
     if(!A) return;
+
     Head *c, *r, *tmpr, *tmpc;
     Node *tmp, *curr;
     c = A->col;
     r = A->row;
     tmp = r->node;
     curr = r->node;
-    free(A);
     
     while(r){
         while(curr){
@@ -343,7 +343,10 @@ int main()
     
     freeMatrix(A);
     freeMatrix(B);
-    //freeMatrix(M);
+    freeMatrix(M);
+    free(A);
+    free(B);
+    free(M);
     
     return 0;
 
