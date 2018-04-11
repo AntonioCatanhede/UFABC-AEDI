@@ -1,0 +1,335 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+typedef struct tree_node {
+    int ra, nota, height;
+    struct tree_node *left_p, *right_p;
+}tree_node;
+
+void updateHeight(tree_node *n) {
+    if (!n) return;
+    int hl = (n->left_p)  ? n->left_p->height  : -1,
+        hr = (n->right_p) ? n->right_p->height : -1;
+
+    updateHeight(n->left_p);
+    n->height =  (hl > hr ? hl : hr) + 1 ;
+    updateHeight(n->right_p);
+
+}
+
+int balanceFactor(tree_node *n) {
+	if (!n) return 0;
+        
+	int hl = (n->left_p)  ? n->left_p->height  : -1,
+	    hr = (n->right_p) ? n->right_p->height : -1;
+	return hl - hr;
+}
+
+tree_node * t_search(tree_node *root, int ra, int *comp)
+{
+  *comp=1;
+    while (root) {
+        if (root->ra == ra)
+            return root;
+        if (root->ra < ra)
+            root = root->right_p;
+        else
+            root = root->left_p;
+        *comp+=1;
+    }
+  if(root == NULL){
+      *comp-=1;
+  }
+    return NULL;
+}
+
+tree_node *newNode(int ra, int nota)
+{
+    tree_node *temp =  malloc(sizeof(tree_node));
+    temp->ra = ra;
+    temp->nota = nota;
+    temp->left_p = temp->right_p = NULL;
+    return temp;
+}
+
+tree_node *t_min(tree_node *root_p){
+    
+    while(root_p->left_p  != NULL) root_p = root_p->left_p;
+    return root_p;
+}
+
+void caseLLrotateRight(tree_node **pRoot) {
+    tree_node *leftChild, *p;
+    int x, y, z;
+    
+    p = *pRoot;
+    
+    x = p->left_p->left_p->ra;
+    y = p->left_p->ra;
+    z = p->ra;
+    
+    leftChild = p->left_p;
+    p->left_p = leftChild->right_p;
+    leftChild->right_p = p;
+
+    updateHeight(p);
+
+    *pRoot = leftChild;
+    printf("[Rotacao: SD]\n");
+    printf("[x=%d y=%d z=%d]\n", x, y, z);
+}
+
+void caseRRrotateLeft(tree_node **pRoot) {
+    tree_node *rightChild, *p;
+    int x, y, z;
+    
+    p = *pRoot;
+
+    z = p->right_p->right_p->ra;
+    y = p->right_p->ra;
+    x = p->ra;
+        
+    rightChild = p->right_p;
+
+    p->right_p = rightChild->left_p;
+    rightChild->left_p = p;
+
+    updateHeight(p);
+
+    *pRoot = rightChild;
+    printf("[Rotacao: SE]\n");
+    printf("[x=%d y=%d z=%d]\n", x, y, z);
+}
+
+void caseLRrotateLeftRight(tree_node **pRoot) {
+    tree_node *p, *leftChild, *rightgrandChild;
+    int x, y, z;
+
+    p = *pRoot;
+
+    y = p->left_p->right_p->ra;
+    x = p->left_p->ra;
+    z = p->ra;
+        
+    leftChild = p->left_p;
+    rightgrandChild = leftChild->right_p;
+
+    leftChild->right_p = rightgrandChild->left_p;
+    rightgrandChild->left_p = leftChild;
+
+    p->left_p = rightgrandChild->right_p;
+    rightgrandChild->right_p = p;
+
+    updateHeight(p);
+    updateHeight(leftChild);
+    updateHeight(rightgrandChild);
+
+    *pRoot = rightgrandChild;
+    printf("[Rotacao: DD]\n");
+    printf("[x=%d y=%d z=%d]\n", x, y, z);
+}
+
+void caseRLrotateRightLeft(tree_node **pRoot) {
+    tree_node *p, *rightChild, *leftgrandChild;
+    int x, y, z;
+
+    p = *pRoot;
+
+    y = p->right_p->left_p->ra;
+    z = p->right_p->ra;
+    x = p->ra;
+
+    rightChild = p->right_p;
+    leftgrandChild = rightChild->left_p;
+    rightChild->left_p = leftgrandChild->right_p;
+    leftgrandChild->right_p = rightChild;
+
+    p->right_p = leftgrandChild->left_p;
+    leftgrandChild->left_p = p;
+
+    updateHeight(p);
+    updateHeight(rightChild);
+    updateHeight(leftgrandChild);
+
+    *pRoot = leftgrandChild;
+    printf("[Rotacao: DE]\n");
+    printf("[x=%d y=%d z=%d]\n", x, y, z);
+}
+
+tree_node *t_delete(tree_node *root, int ra, int *balance) {
+    if(root == NULL) return root; 
+    else if(ra < root->ra) root->left_p = t_delete(root->left_p,ra, balance);
+    else if (ra > root->ra) root->right_p = t_delete(root->right_p,ra, balance);
+    else {
+        if( (root->left_p == NULL) || (root->right_p == NULL) )
+        {
+            tree_node *temp = root->left_p ? root->left_p :
+                                             root->right_p;
+
+            if (temp == NULL)
+            {
+                temp = root;
+                root = NULL;
+            }
+            else 
+             *root = *temp;
+            free(temp);
+        }
+        else
+        {
+            tree_node* temp = t_min(root->right_p);
+            root->ra = temp->ra;
+            root->nota = temp->nota;
+            root->right_p = t_delete(root->right_p, temp->ra, balance);
+        }
+    }
+    
+    if (root == NULL) return root;
+    
+    updateHeight(root);
+ 
+    int bal = balanceFactor(root);
+    if(abs(bal) == 2) 
+    {
+        printf("[No desbalanceado: %d]\n", root->ra);
+        *balance = 0;
+    }
+
+    if (bal > 1 && balanceFactor(root->left_p) >= 0)
+    {
+        caseLLrotateRight(&root);
+        return root;
+    }
+        
+    if (bal > 1 && balanceFactor(root->left_p) < 0)
+    {
+        caseLRrotateLeftRight(&root);
+        return root;
+    }
+ 
+    if (bal < -1 && balanceFactor(root->right_p) <= 0)
+    {
+        caseRRrotateLeft(&root);
+        return root;
+    }
+    
+    if (bal < -1 && balanceFactor(root->right_p) > 0)
+    {
+        caseRLrotateRightLeft(&root);
+        return root;
+    }
+    
+    return root;
+}
+
+int avlInsert(tree_node **treeRoot, int ra, int nota) {
+    int balance = 1;
+    if (*treeRoot == NULL) {
+
+        *treeRoot = newNode(ra, nota);
+        
+        return balance;
+    }
+
+    if (ra == (*treeRoot)->ra){ 
+        (*treeRoot)->nota = nota;
+        return balance;
+    }
+    tree_node *tree = *treeRoot;
+
+    if (ra < tree->ra) 
+    { 
+        if(avlInsert(&tree->left_p, ra, nota)== 0) balance = 0;
+        
+        if (balanceFactor(tree) == 2) {
+            balance = 0;
+            printf("[No desbalanceado: %d]\n", tree->ra);
+            if (ra < tree->left_p->ra){
+                caseLLrotateRight(&tree);
+            }
+            else{
+                caseLRrotateLeftRight(&tree);
+            }
+        }
+        else 
+            updateHeight(tree);
+    }
+    else 
+    { 
+        if(avlInsert(&tree->right_p, ra, nota) == 0) balance = 0;
+
+        if (balanceFactor(tree) == -2) {
+            balance = 0;
+            printf("[No desbalanceado: %d]\n", tree->ra);
+            if (ra > tree->right_p->ra){
+                caseRRrotateLeft(&tree);  
+            }
+            else{
+                caseRLrotateRightLeft(&tree);
+            }
+        }
+        else updateHeight(tree);        
+    }
+
+    *treeRoot = tree;
+    return balance;
+}
+
+void t_free(tree_node *root_p)
+{
+    if (root_p==NULL) return;
+    t_free(root_p->left_p);
+    t_free(root_p->right_p);
+    if(root_p) printf("%d ", root_p->ra);
+    free(root_p);
+    root_p=NULL;
+}
+
+int main(int argc, char** argv)
+{
+    
+  char op;
+  int ra, nota, balance;
+  int comp_t;
+  tree_node *tp = NULL, *root_p = NULL;
+  
+ do{
+    
+    scanf("\n%c", &op);
+    
+    if(op!='P' && op!='A'){
+        scanf("%d", &ra);
+        if(op=='I'){
+            scanf("%d", &nota);
+            if(avlInsert(&root_p, ra, nota) == 1) 
+                printf("[Ja esta balanceado]\n");
+        }
+        else if(op=='B'){
+            tp = t_search(root_p, ra, &comp_t);
+            if(!tp) printf("C=%d Nota=%d\n", comp_t, -1);
+            else printf("C=%d Nota=%d\n", comp_t, tp->nota);
+        }
+        else if(op=='R')
+        {
+            balance = 1;
+            root_p = t_delete(root_p, ra, &balance);
+            if(balance) printf("[Ja esta balanceado]\n");
+        }
+        else 
+        updateHeight(root_p);
+    }
+    else if(op=='A')
+    { 
+        updateHeight(root_p);
+        if(!root_p) printf("A=%d\n", -1); 
+        else printf("A=%d\n", root_p->height);      
+    }
+  } while(op!='P');
+  
+  printf("[");
+  if(root_p) t_free(root_p);
+  printf("]\n");
+  
+  return 0;
+}
